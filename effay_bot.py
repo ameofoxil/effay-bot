@@ -1,10 +1,3 @@
-#  decorate a def with @client.event and async def if it uses a discord.py funcion that is a coroutine 
-#  all discord.py coroutines need to be prefixed with await
-#  use await asyncio.sleep(<seconds>) for waiting
-
-# reddit oath2 redirect uri = https://ameofoxil.github.io/effay-bot/
-# user_agent = Python.ubuntu:fashion.discord.bot:v0.1
-
 import discord
 import asyncio
 import datetime
@@ -137,15 +130,15 @@ class EffayBot():
 		if(contents[1] == "add"):
 			EffayBot.vote_manager.add_object(contents[2], contents[3], contents[4])
 		elif(contents[1] == "remove"):
-			EffayBot.vote_manager.remove_object(int(contents[2]))
+			EffayBot.vote_manager.remove_object()
 		elif(contents[1] == "list"):
 			await EffayBot.client.send_message(message.channel, EffayBot.vote_manager.list())
-		elif(contents[1] == "activate"):
+		elif(contents[1] == "active"):
 			EffayBot.vote_manager.set_active(int(contents[2]))
 		elif(contents[1] == "result"):
 			await EffayBot.client.send_message(message.channel, EffayBot.vote_manager.make_results())
 		else:
-			EffayBot.vote_manager.vote(message.author.id, contents[2])
+			await EffayBot.client.send_message(message.channel, EffayBot.vote_manager.vote(message.author.id, contents[1]))
 
 	@client.event
 	async def generate_help(message):
@@ -162,8 +155,9 @@ class EffayBot():
 		remove :: remove the active vote
 		list ::  list all votes and get some info about each one
 		activate <number> :: set the voted numbered <number> as active
-		result :: get the winner and tally of the active gote
-
+		result :: get the winner and tally of the active vote
+	.vote a :: vote for option a
+	.vote b :: vote for option b
 
 **__Admin Commands__**
 	.clean <member_id> <time> :: delete all messages from user <member_id> posted between now and <time> minutes ago

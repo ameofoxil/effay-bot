@@ -21,7 +21,7 @@ class Vote:
 		member_voted = False
 		for i in range(len(self.vote_list)):
 			if(self.vote_list[i][0] == member_id):
-				vote_list[i][1] = vote
+				self.vote_list[i][1] = vote
 				member_voted = True
 				return "You alreaded voted! Vote changed."
 		if(member_voted is False):
@@ -36,7 +36,7 @@ class Vote:
 		"""
 		tally_a = 0
 		tally_b = 0
-		for i in vote_list:
+		for i in self.vote_list:
 			if(i[1].lower() == "a"):
 				tally_a += 1
 			elif(i[1].lower() == "b"):
@@ -47,7 +47,7 @@ class Vote:
 			out_message = "{0} wins!".format(self.option_b)
 		else:
 			out_message = "Tie!"
-		out_message += "\nOption A({2}) had {0} votes.\nOption B({3}) had {1} notes".format(tally_a, tally_b, option_a, option_b)
+		out_message += "\nOption A({2}) had {0} votes.\nOption B({3}) had {1} votes.".format(tally_a, tally_b, self.option_a, self.option_b)
 		return out_message
 
 	def generate_print(self):

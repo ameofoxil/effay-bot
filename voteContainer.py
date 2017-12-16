@@ -15,10 +15,10 @@ class VoteContainer:
 
 	def remove_object(self):
 		"""
-		Removes activ vote object
+		Removes active vote object
 		sets active to -1
 		"""
-		del self.object_list[active]
+		del self.object_list[self.active]
 		self.active = -1
 
 	def list(self):
@@ -37,8 +37,10 @@ class VoteContainer:
 
 	def vote(self, member_id, option):
 		"""add a vote to the active vote object"""
-		return self.object_list[active][1].add(member_id, option)
+		return self.object_list[self.active][1].add(member_id, option)
 
 	def make_results(self):
-		return self.object_list[self.active][1].tally()
+		message = self.object_list[self.active][1].tally()
+		self.remove_object()
+		return message
 		
