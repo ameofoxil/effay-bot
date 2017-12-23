@@ -17,17 +17,19 @@ class EffayBot():
 		Post a help message displaying commands
 		Post fashion inspo pictures scrubbed from reddit
 		Prune members who haven't been active
+		Runs voting for multiple polls
 
-		TODO :: Make a separate voting class
-	"""
+	TODO: Add file IO to preserve polls between restarts
+		"""
 
 
 	client = discord.Client()
-	reactio_list = ["🅰", "🇳", "🇬", "🇪", "🇷", "🇾"]
+	reaction_list = ["🅰", "🇳", "🇬", "🇪", "🇷", "🇾"]
 	token = ""
 	flag_name = ""
 	vote_manager = voteContainer.VoteContainer()
 	reddit_handle = None
+	blacklist = [251145296900390913, 295983743125159936]
 
 	def __init__(self):
 		"""
@@ -50,7 +52,7 @@ class EffayBot():
 
 	@client.event
 	async def log_off(message):
-		"""Closes the connection to discord"""
+		"""Closes the connection to discord if the user who gave the command has the administration tag"""
 		admin = True
 		for i in message.author.roles:
 			if(i.name == "administration"):
@@ -63,7 +65,10 @@ class EffayBot():
 
 	@client.event
 	async def auto_prune(server):
-		"""Prune members who haven't been active"""
+		"""
+		Prune members who haven't been active
+		Requires permission to remove members
+		"""
 		EffayBot.client.request_offline_members(server)
 		mems = 0
 		for i in server.members:
@@ -75,6 +80,7 @@ class EffayBot():
 
 
 	def check_id(message):
+		"""Helper function for delete_from_time"""
 		return(message.author.id == EffayBot.flag_name)
 
 	@client.event
@@ -89,7 +95,7 @@ class EffayBot():
 				admin = True
 				break
 		if(admin is True):
-			message_split = message.content.split(" ")
+			message_split = message.content.split("; ")
 			if(len(message_split) == 3):
 				if(message_split[2] == "0"):
 					await EffayBot.client.purge_from(message.channel)
@@ -104,18 +110,23 @@ class EffayBot():
 	async def post_inspo(message):
 		"""Post fashion inspo pictures scrubbed from reddit"""
 		post = ""
-		count = 0
-		if(message is None):
-			content = malefashion
+		content = []
+		if(message.content == ".inspo"):
+			content.append("malefashion")
 		else:
-			content = message.content.split(" ")[1]
-		imgur_list = EffayBot.reddit_handle.subreddit(content).hot()
-		for i in imgur_list:
-			if(i.stickied is False):
-				post += (i.url + "\n")
-				count += 1
-				if(count == 3):
-					break
+			for i in message.content.split("; "):
+				content.append(i)
+			del content[0]
+		for i in content:
+			post += "**" + i + "**\n"
+			count = 0
+			sub = EffayBot.reddit_handle.subreddit(i)
+			for j in sub.hot():
+				if(j.stickied is False):
+					post += (j.url + "\n")
+					count += 1
+					if(count == 3):
+						break
 		await EffayBot.client.send_message(message.channel, post)
 
 	@client.event
@@ -126,7 +137,7 @@ class EffayBot():
 
 	@client.event
 	async def voting(message):
-		contents = message.content.split(" ")
+		contents = message.content.split("; ")
 		if(contents[1] == "add"):
 			EffayBot.vote_manager.add_object(contents[2], contents[3], contents[4])
 		elif(contents[1] == "remove"):
@@ -146,23 +157,26 @@ class EffayBot():
 """**__Commands:__**
 	.help :: display this help message
 	.link :: get a 30min invite link
-	.inspo <subreddit> :: get the top 3 images from a subreddit
-		examples: malefashion, femalefashion, wallpapers, etc
-		<subreddit> defaults to malefashion if no param is entered
-	.vote <command> <arg list> :: vote on stuff
+	.inspo; <subreddit_list> :: get the top 3 images from a subreddit
+		Examples: malefashion, femalefashion, wallpapers, etc
+		<subreddit_list> defaults to malefashion if no param is entered
+		Can take multiple param arguments separated by "; " without quotes
+	.vote; <command>; <arg list> :: vote on stuff
 		*Specific commands:*
-		add <title> <option a> <option b> :: add a vote
+		add; <title>; <option a>; <option b> :: add a vote
 		remove :: remove the active vote
 		list ::  list all votes and get some info about each one
-		activate <number> :: set the voted numbered <number> as active
+		active; <number> :: set the voted numbered <number> as active
 		result :: get the winner and tally of the active vote
-	.vote a :: vote for option a
-	.vote b :: vote for option b
+	.vote; a :: vote for option a
+	.vote; b :: vote for option b
 
 **__Admin Commands__**
-	.clean <member_id> <time> :: delete all messages from user <member_id> posted between now and <time> minutes ago
+	.clean; <member_id>; <time> :: delete all messages from user <member_id> posted between now and <time> minutes ago
 		.clean 0 0 will delete the last 100 messages posted by anyone
 	.quit :: turn off the bot
+
+	**Arguments for commands must be separated by "; " without quotes!!**
 """)
 
 	@client.event
@@ -183,27 +197,33 @@ class EffayBot():
 	@client.event
 	async def on_message(message):
 		"""Handle message triggers"""
-		if(message.content == ".help"):
-			await EffayBot.generate_help(message)
+		blacklisted = False
+		for i in EffayBot.blacklist:
+			if(message.author.id == str(i)):
+				blacklisted = True
 
-		elif(message.content == ".link"):
-			await EffayBot.generate_link(message)
+		if(blacklisted is False):
+			if(message.content == ".help"):
+				await EffayBot.generate_help(message)
 
-		elif(message.content.startswith(".clean")):
-			await EffayBot.delete_from_time(message)
+			elif(message.content == ".link"):
+				await EffayBot.generate_link(message)
 
-		elif(message.content == ".quit"):
-			await EffayBot.log_off(message)
+			elif(message.content.startswith(".clean")):
+				await EffayBot.delete_from_time(message)
 
-		elif(message.content.startswith(".inspo")):
-			await EffayBot.post_inspo(message)
+			elif(message.content == ".quit"):
+				await EffayBot.log_off(message)
 
-		elif(message.content.startswith(".vote")):
-			await EffayBot.voting(message)
+			elif(message.content.startswith(".inspo")):
+				await EffayBot.post_inspo(message)
 
-		elif(message.content.find("😠") is not -1):
-			for i in EffayBot.reactio_list:
-				await EffayBot.client.add_reaction(message, i)
+			elif(message.content.startswith(".vote")):
+				await EffayBot.voting(message)
+
+			elif(message.content.find("😠") is not -1):
+				for i in EffayBot.reaction_list:
+					await EffayBot.client.add_reaction(message, i)
 
 	@client.event
 	async def on_ready():
